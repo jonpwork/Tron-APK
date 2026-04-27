@@ -6,15 +6,13 @@ import multiprocessing, json, textwrap, shutil
 import requests as http_requests
 
 # ─────────────────────────────────────────────
-#  CONFIGURAÇÕES OTIMIZADAS PARA POUCA RAM
+#  CONFIG
 # ─────────────────────────────────────────────
 app = Flask(__name__)
-# Reduzido para 50MB para não estourar a memória RAM da versão gratuita
-app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 300 * 1024 * 1024
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-# Fixado em 1 Thread para evitar que o FFmpeg multiplique processos e consuma toda a RAM
-CPU_CORES    = "1" 
+CPU_CORES    = str(multiprocessing.cpu_count())
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR    = os.path.join(BASE_DIR, "fonts")
 os.makedirs(FONTS_DIR, exist_ok=True)
@@ -137,6 +135,55 @@ def transcrever():
         return jsonify({"erro": str(e)}), 500
 
 # ─────────────────────────────────────────────
+#  GERADOR DE PROMPT DE IMAGEM
+# ─────────────────────────────────────────────
+@app.route("/gerar-prompt", methods=["POST"])
+def gerar_prompt():
+    data = request.json
+    transcricao = data.get("texto", "").strip()
+    if not transcricao:
+        return jsonify({"erro": "Texto vazio."}), 400
+
+    try:
+        resp = http_requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama3-8b-8192",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é um especialista em criar prompts para geração de imagens com IA. "
+                            "Dado um texto em português, crie um prompt em inglês detalhado e criativo "
+                            "para gerar uma imagem de capa de vídeo. "
+                            "Responda APENAS com o prompt, sem explicações, sem aspas."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": transcricao
+                    }
+                ],
+                "max_tokens": 300,
+                "temperature": 0.8
+            },
+            timeout=30
+        )
+
+        if resp.status_code != 200:
+            return jsonify({"erro": f"Groq: {resp.text}"}), 500
+
+        prompt = resp.json()["choices"][0]["message"]["content"].strip()
+        return jsonify({"prompt": prompt})
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+# ─────────────────────────────────────────────
 #  GERADOR ASS — estilo TikTok karaoke palavra por palavra
 # ─────────────────────────────────────────────
 def _ts_ass(s: float) -> str:
@@ -221,6 +268,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     return header + "\n".join(lines)
 
+# ─────────────────────────────────────────────
+#  FALLBACK — legenda estática
+# ─────────────────────────────────────────────
 def _esc(txt: str) -> str:
     return (
         txt.replace("\\", "\\\\")
@@ -253,6 +303,9 @@ def build_vf_estatico(w: str, h: str, legenda: str) -> str:
     )
     return f"{scale},{dt}"
 
+# ─────────────────────────────────────────────
+#  CONVERSOR PRINCIPAL
+# ─────────────────────────────────────────────
 @app.route("/converter", methods=["POST"])
 def converter():
     img_file      = request.files.get("imagem")
@@ -273,4 +326,118 @@ def converter():
         with tempfile.TemporaryDirectory() as tmp:
             img_ext  = os.path.splitext(img_file.filename)[1] or ".jpg"
             aud_ext  = os.path.splitext(aud_file.filename)[1] or ".mp3"
-            img
+            img_path = os.path.join(tmp, "img" + img_ext)
+            aud_path = os.path.join(tmp, "aud" + aud_ext)
+            img_file.save(img_path)
+            aud_file.save(aud_path)
+
+            fd, out_path = tempfile.mkstemp(suffix=".mp4")
+            os.close(fd)
+
+            scale_vf = (
+                f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
+            )
+            vf       = scale_vf
+            ass_path = None
+
+            if modo_leg == "auto":
+                dados_ass  = None
+                modo_dados = "segmentos"
+
+                if palavras_json:
+                    try:
+                        palavras = json.loads(palavras_json)
+                        if palavras:
+                            dados_ass  = palavras
+                            modo_dados = "palavras"
+                    except Exception:
+                        pass
+
+                if dados_ass is None and segs_json:
+                    try:
+                        dados_ass = json.loads(segs_json)
+                    except Exception:
+                        pass
+
+                if dados_ass:
+                    try:
+                        ass_content = gerar_ass(dados_ass, w, h, modo_dados)
+                        ass_path    = os.path.join(tmp, "legenda.ass")
+                        with open(ass_path, "w", encoding="utf-8") as f:
+                            f.write(ass_content)
+
+                        if os.path.isdir(FONTS_DIR):
+                            vf = f"{scale_vf},ass={ass_path}:fontsdir={FONTS_DIR}"
+                        else:
+                            vf = f"{scale_vf},ass={ass_path}"
+
+                    except Exception as err:
+                        app.logger.error(f"Erro ao gerar ASS: {err}\n{traceback.format_exc()}")
+                        ass_path = None
+
+            if ass_path is None and modo_leg == "estatica" and legenda_txt:
+                vf = build_vf_estatico(w_str, h_str, legenda_txt)
+
+            cmd = [
+                "ffmpeg", "-y",
+                "-loop", "1",
+                "-framerate", "25",
+                "-i", img_path,
+                "-i", aud_path,
+                "-vf", vf,
+                "-map", "0:v",
+                "-map", "1:a",
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-tune", "stillimage",
+                "-crf", "28",
+                "-r", "25",
+                "-pix_fmt", "yuv420p",
+                "-threads", CPU_CORES,
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-ar", "44100",
+                "-shortest",
+                "-movflags", "+faststart",
+                out_path,
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1200)
+
+        if result.returncode != 0:
+            return f"Erro FFmpeg:\n{result.stderr[-2000:]}", 500
+
+        @after_this_request
+        def _cleanup(response):
+            try:
+                os.unlink(out_path)
+            except Exception:
+                pass
+            return response
+
+        return send_file(
+            out_path,
+            mimetype="video/mp4",
+            as_attachment=True,
+            download_name="tron_clipe.mp4"
+        )
+
+    except subprocess.TimeoutExpired:
+        return "Tempo limite excedido (20 min).", 504
+    except Exception:
+        return f"Erro interno:\n{traceback.format_exc()}", 500
+
+# ─────────────────────────────────────────────
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+@app.route("/healthz")
+def healthz():
+    return "OK", 200
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return f"<pre>{traceback.format_exc()}</pre>", 500
+    
