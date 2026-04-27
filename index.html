@@ -119,6 +119,7 @@ header{position:relative;z-index:10;text-align:center;padding:28px 16px 0;}
     <div class="card-options">
       <div class="opt sel" data-group="leg" data-val="nenhuma">Off</div>
       <div class="opt" data-group="leg" data-val="auto">Auto</div>
+      <div class="opt" data-group="leg" data-val="prompt">Prompt</div>
       <div class="opt" data-group="leg" data-val="estatica">Fixo</div>
     </div>
     <input class="leg-input" id="legInput" placeholder="texto..." style="display:none"/>
@@ -179,7 +180,7 @@ document.querySelectorAll('.opt').forEach(el=>{
     if(g==='leg'){
       state.modoLeg=el.dataset.val;
       document.getElementById('legInput').style.display=state.modoLeg==='estatica'?'block':'none';
-      document.getElementById('transcribeArea').style.display=state.modoLeg==='auto'?'block':'none';
+      document.getElementById('transcribeArea').style.display=(state.modoLeg==='auto' || state.modoLeg==='prompt')?'block':'none';
     }
   });
 });
@@ -238,8 +239,14 @@ async function gerarVideo(){
   setStatus('Processando...');
 
   const fd=new FormData();
-  fd.append('imagem',state.imgFile); fd.append('audio',state.audFile);
-  fd.append('resolucao',state.resolucao); fd.append('modo_legenda',state.modoLeg);
+  fd.append('imagem',state.imgFile); 
+  fd.append('audio',state.audFile);
+  fd.append('resolucao',state.resolucao); 
+  
+  // Se for "prompt", manda "nenhuma" pro backend para não queimar legenda no video
+  const modoLegendaBackend = state.modoLeg === 'prompt' ? 'nenhuma' : state.modoLeg;
+  fd.append('modo_legenda', modoLegendaBackend);
+  
   fd.append('legenda', document.getElementById('legInput').value);
   if(state.palavras.length) fd.append('palavras',JSON.stringify(state.palavras));
   try{
