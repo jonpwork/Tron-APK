@@ -44,7 +44,7 @@ jobs:
             -dname "CN=Tron MP4, OU=App, O=jonpwork, L=BR, S=BR, C=BR"
 
       - name: Gerar projeto com bubblewrap
-        run: printf "No\n\n\n\n\n\n" | bubblewrap init --manifest twa-manifest.json
+        run: printf "No\n$JAVA_HOME\n\n\n\n\n" | bubblewrap init --manifest twa-manifest.json
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
@@ -59,7 +59,7 @@ jobs:
         run: ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
 
       - name: Build APK
-        run: printf "No\n\n\n\n\n\n" | bubblewrap build
+        run: printf "No\n$JAVA_HOME\n\n\n\n\n" | bubblewrap build
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
