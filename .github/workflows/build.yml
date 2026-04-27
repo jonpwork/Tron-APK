@@ -49,10 +49,13 @@ jobs:
       - name: Build APK com expect
         run: |
           expect << 'EOF'
-          set timeout 300
+          set timeout 600
           spawn bubblewrap build --skipPwaValidation
           expect {
-            -re "(?i)password" { send "android123\r"; exp_continue }
+            -re {[Rr]egenerate} { send "y\r"; exp_continue }
+            -re {[Uu]pdate} { send "y\r"; exp_continue }
+            -re {[Pp]assword} { send "android123\r"; exp_continue }
+            -re {\?} { send "y\r"; exp_continue }
             eof
           }
           EOF
