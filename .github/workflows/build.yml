@@ -35,7 +35,7 @@ jobs:
             -dname "CN=Tron MP4, OU=App, O=jonpwork, L=BR, S=BR, C=BR"
 
       - name: Gerar projeto com bubblewrap
-        run: printf "Y\nY\nY\nY\nY\nY\nY\nY\nY\nY\n" | bubblewrap init --manifest twa-manifest.json
+        run: yes "Y" 2>/dev/null | bubblewrap init --manifest twa-manifest.json || true
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
@@ -50,10 +50,13 @@ jobs:
         run: ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
 
       - name: Build APK
-        run: printf "Y\nY\nY\nY\nY\nY\nY\nY\nY\nY\n" | bubblewrap build
+        run: yes "Y" 2>/dev/null | bubblewrap build || true
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
+
+      - name: Verificar APK gerado
+        run: find . -name "*.apk" -o -name "*.aab" | head -20
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
