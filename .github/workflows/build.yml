@@ -60,19 +60,15 @@ jobs:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
 
-      - name: Listar arquivos gerados
-        run: find . -maxdepth 3 -name "*.gradle" -o -name "gradlew" | head -20
-
       - name: Corrigir app/build.gradle
         run: |
-          sed -i "s/enableNotifications: ,/enableNotifications: false,/g" app/build.gradle || true
-          sed -i "s/enableNotifications:,/enableNotifications: false,/g" app/build.gradle || true
-          sed -i "s/splashScreenFadeOutDuration: ,/splashScreenFadeOutDuration: 300,/g" app/build.gradle || true
-          sed -i "s/splashScreenFadeOutDuration:,/splashScreenFadeOutDuration: 300,/g" app/build.gradle || true
+          # Curativos blindados da Aurora para resolver os bugs de vírgula solta
+          sed -i -E "s/enableNotifications:\s*,/enableNotifications: false,/g" app/build.gradle || true
+          sed -i -E "s/splashScreenFadeOutDuration:\s*,/splashScreenFadeOutDuration: 300,/g" app/build.gradle || true
           cat app/build.gradle | grep -E "enableNotifications|splashScreenFadeOutDuration" || true
 
       - name: Atualizar Gradle wrapper
-        run: ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
+        run: ./gradlew wrapper --gradle-version=8.11.1 --distribution-type=bin
 
       - name: Build APK
         run: bubblewrap build
@@ -90,4 +86,3 @@ jobs:
           path: |
             app-release-signed.apk
             app-release-bundle.aab
-            
