@@ -1,0 +1,23 @@
+{
+  "packageId": "com.jonpwork.tronmp4",
+  "host": "tron-mp4-app.onrender.com",
+  "name": "Tron MP4",
+  "launcherName": "Tron MP4",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#00e5ff",
+  "navigationColor": "#000000",
+  "backgroundColor": "#000000",
+  "startUrl": "/",
+  "iconUrl": "https://tron-mp4-app.onrender.com/static/icons/icon-512.png",
+  "maskableIconUrl": "https://tron-mp4-app.onrender.com/static/icons/icon-512.png",
+  "appVersion": "1",
+  "appVersionName": "1.0.0",
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "android"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableNotifications": false,
+  "webManifestUrl": "https://tron-mp4-app.onrender.com/manifest.json"
+}
