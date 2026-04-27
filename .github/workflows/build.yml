@@ -22,8 +22,17 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
+
+      - name: Pré-configurar Bubblewrap (sem perguntas)
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          cat ~/.bubblewrap/config.json
 
       - name: Gerar Keystore
         run: |
@@ -38,8 +47,7 @@ jobs:
             -dname "CN=Tron MP4, O=JonpWork, C=BR"
 
       - name: Build APK
-        run: |
-          printf 'android123\nandroid123\n' | bubblewrap build --skipPwaValidation
+        run: echo "android123" | bubblewrap build --skipPwaValidation
 
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
