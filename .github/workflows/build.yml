@@ -55,16 +55,24 @@ jobs:
           cat ~/.bubblewrap/config.json
 
       - name: Gerar projeto com bubblewrap
-        run: bubblewrap update --manifest twa-manifest.json
+        run: bubblewrap init --manifest twa-manifest.json
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
 
+      - name: Listar arquivos gerados
+        run: find . -maxdepth 3 -name "*.gradle" -o -name "gradlew" | head -20
+
       - name: Corrigir app/build.gradle
         run: |
-          sed -i "s/enableNotifications: ,/enableNotifications: false,/g" app/build.gradle
-          sed -i "s/enableNotifications:,/enableNotifications: false,/g" app/build.gradle
-          grep -n "enableNotifications" app/build.gradle
+          # Correções da Cláudia
+          sed -i "s/enableNotifications: ,/enableNotifications: false,/g" app/build.gradle || true
+          sed -i "s/enableNotifications:,/enableNotifications: false,/g" app/build.gradle || true
+          # Novas correções da Aurora para o erro da imagem
+          sed -i "s/splashScreenFadeOutDuration: ,/splashScreenFadeOutDuration: 300,/g" app/build.gradle || true
+          sed -i "s/splashScreenFadeOutDuration:,/splashScreenFadeOutDuration: 300,/g" app/build.gradle || true
+          # Mostra no log se deu certo
+          cat app/build.gradle | grep -E "enableNotifications|splashScreenFadeOutDuration" || true
 
       - name: Atualizar Gradle wrapper
         run: ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
