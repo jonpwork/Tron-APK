@@ -46,6 +46,13 @@ jobs:
             -keypass android123 \
             -dname "CN=Tron MP4, O=JonpWork, C=BR"
 
+      - name: Acordar Render app
+        run: |
+          echo "Acordando o servidor..."
+          curl -s https://tron-mp4-app.onrender.com/ || true
+          sleep 40
+          echo "Servidor pronto!"
+
       - name: Build APK com expect
         run: |
           expect << 'EOF'
