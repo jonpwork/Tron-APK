@@ -25,8 +25,21 @@ jobs:
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
 
+      - name: Gerar Keystore
+        run: |
+          keytool -genkeypair \
+            -keystore android.keystore \
+            -alias android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android123 \
+            -keypass android123 \
+            -dname "CN=Tron MP4, O=JonpWork, C=BR"
+
       - name: Build APK
-        run: bubblewrap build --skipPwaValidation
+        run: |
+          printf 'android123\nandroid123\n' | bubblewrap build --skipPwaValidation
 
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
