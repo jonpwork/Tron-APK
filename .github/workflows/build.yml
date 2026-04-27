@@ -46,9 +46,9 @@ jobs:
             -keypass android123 \
             -dname "CN=Tron MP4, O=JonpWork, C=BR"
 
-      - name: Gerar projeto Android com bubblewrap
+      - name: Gerar projeto com bubblewrap (ignora falha do Gradle)
         run: |
-          expect << 'EOF'
+          expect << 'EOF' || true
           set timeout 300
           log_user 1
           spawn bubblewrap build --skipPwaValidation
@@ -60,30 +60,20 @@ jobs:
             eof
           }
           EOF
-          echo "Bubblewrap finalizado"
+          echo "Projeto gerado!"
 
-      - name: Verificar projeto gerado
+      - name: Atualizar Gradle wrapper
         run: |
-          echo "=== Pastas geradas ==="
-          ls -la
-          echo "=== Dentro de android (se existir) ==="
-          ls -la android/ || echo "Pasta android nao encontrada"
+          chmod +x gradlew
+          ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
 
-      - name: Compilar com Gradle diretamente
-        run: |
-          if [ -d "android" ]; then
-            cd android
-            chmod +x gradlew
-            ./gradlew assembleRelease
-          else
-            echo "ERRO: pasta android nao foi gerada"
-            exit 1
-          fi
+      - name: Compilar APK
+        run: ./gradlew assembleRelease
 
       - name: Assinar APK
         run: |
-          APK=$(find android -name "*.apk" | head -1)
-          echo "APK encontrado: $APK"
+          APK=$(find . -name "*.apk" -not -path "*/intermediates/*" | head -1)
+          echo "APK: $APK"
           $ANDROID_SDK_ROOT/build-tools/$(ls $ANDROID_SDK_ROOT/build-tools | tail -1)/apksigner sign \
             --ks android.keystore \
             --ks-key-alias android \
@@ -95,4 +85,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tron-mp4-release
-          path: android/**/*.apk
+          path: "**/*.apk"
