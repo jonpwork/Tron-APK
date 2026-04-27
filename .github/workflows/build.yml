@@ -27,11 +27,13 @@ jobs:
 
       - name: Inicializar projeto
         run: |
-          bubblewrap init \
+          yes | bubblewrap init \
             --manifest https://tron-mp4-app.onrender.com/manifest.json
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_11_X64 }}
 
       - name: Build APK
-        run: bubblewrap build
+        run: yes | bubblewrap build
 
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
