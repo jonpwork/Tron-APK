@@ -60,8 +60,13 @@ jobs:
           }
           EOF
 
+      - name: Encontrar APK
+        run: find . -name "*.apk" -o -name "*.aab" 2>/dev/null
+
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
         with:
           name: tron-mp4-release
-          path: app/build/outputs/
+          path: |
+            **/*.apk
+            **/*.aab
