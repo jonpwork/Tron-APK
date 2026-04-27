@@ -21,6 +21,13 @@ jobs:
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
 
+      - name: Acordar app no Render
+        run: |
+          echo "Acordando o app..."
+          curl -s --max-time 60 https://tron-mp4-app.onrender.com/ || true
+          sleep 10
+          echo "App acordado!"
+
       - name: Gerar keystore
         run: |
           keytool -genkeypair \
