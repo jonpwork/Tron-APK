@@ -55,13 +55,10 @@ jobs:
           cat ~/.bubblewrap/config.json
 
       - name: Gerar projeto com bubblewrap
-        run: bubblewrap init --manifest twa-manifest.json
+        run: bubblewrap update --manifest twa-manifest.json
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
-
-      - name: Listar arquivos gerados
-        run: find . -maxdepth 3 -name "*.gradle" -o -name "gradlew" | head -20
 
       - name: Corrigir app/build.gradle
         run: |
