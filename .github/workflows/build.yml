@@ -18,9 +18,6 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
-
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
 
@@ -38,7 +35,7 @@ jobs:
             -dname "CN=Tron MP4, OU=App, O=jonpwork, L=BR, S=BR, C=BR"
 
       - name: Gerar projeto com bubblewrap
-        run: yes "" | bubblewrap init --manifest twa-manifest.json
+        run: printf "Y\nY\nY\nY\nY\nY\nY\nY\nY\nY\n" | bubblewrap init --manifest twa-manifest.json
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
@@ -53,7 +50,7 @@ jobs:
         run: ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
 
       - name: Build APK
-        run: yes "" | bubblewrap build
+        run: printf "Y\nY\nY\nY\nY\nY\nY\nY\nY\nY\n" | bubblewrap build
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: android123
           BUBBLEWRAP_KEY_PASSWORD: android123
@@ -63,5 +60,5 @@ jobs:
         with:
           name: tron-mp4-apk
           path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+            app-release-signed.apk
+            app-release-bundle.aab
