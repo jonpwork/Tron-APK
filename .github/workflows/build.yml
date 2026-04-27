@@ -46,13 +46,6 @@ jobs:
             -keypass android123 \
             -dname "CN=Tron MP4, O=JonpWork, C=BR"
 
-      - name: Acordar Render app
-        run: |
-          echo "Acordando o servidor..."
-          curl -v https://tron-mp4-app.onrender.com/static/icons/icon-512.png -o /dev/null
-          sleep 15
-          echo "Servidor pronto!"
-
       - name: Build APK com expect
         run: |
           expect << 'EOF'
@@ -68,12 +61,8 @@ jobs:
           }
           EOF
 
-      - name: Listar todos os arquivos gerados
-        run: |
-          echo "=== APK/AAB ==="
-          find . -name "*.apk" -o -name "*.aab" 2>/dev/null
-          echo "=== Estrutura de pastas ==="
-          find . -type d -not -path "*/node_modules/*" -not -path "*/.git/*" 2>/dev/null
+      - name: Listar arquivos gerados
+        run: find . -name "*.apk" -o -name "*.aab" 2>/dev/null
 
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
