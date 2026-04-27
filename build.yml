@@ -1,0 +1,79 @@
+name: Build Tron APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Gerar keystore
+        run: |
+          keytool -genkeypair \
+            -v \
+            -keystore android.keystore \
+            -alias android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android123 \
+            -keypass android123 \
+            -dname "CN=Tron MP4, OU=App, O=jonpwork, L=BR, S=BR, C=BR"
+
+      - name: Gerar projeto com bubblewrap
+        run: |
+          bubblewrap init --manifest twa-manifest.json
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android123
+          BUBBLEWRAP_KEY_PASSWORD: android123
+
+      # ✅ FIX: Corrige bug do bubblewrap com Gradle 9.0
+      # enableNotifications é gerado sem valor, causando sintaxe inválida
+      - name: Corrigir app/build.gradle
+        run: |
+          sed -i 's/enableNotifications: ,/enableNotifications: false,/' app/build.gradle
+          sed -i 's/enableNotifications:,/enableNotifications: false,/' app/build.gradle
+          echo "--- Conteúdo do app/build.gradle após correção ---"
+          cat app/build.gradle
+
+      - name: Atualizar Gradle wrapper para versão compatível
+        run: |
+          ./gradlew wrapper --gradle-version=8.4 --distribution-type=bin
+
+      - name: Build APK (release)
+        run: |
+          bubblewrap build
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: android123
+          BUBBLEWRAP_KEY_PASSWORD: android123
+
+      - name: Publicar APK como artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: tron-mp4-apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
