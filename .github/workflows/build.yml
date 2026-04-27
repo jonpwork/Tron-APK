@@ -25,8 +25,10 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Instalar Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: Instalar dependências
+        run: |
+          sudo apt-get install -y expect
+          npm install -g @bubblewrap/cli
 
       - name: Pré-configurar Bubblewrap
         run: |
@@ -38,15 +40,22 @@ jobs:
           keytool -genkeypair \
             -keystore android.keystore \
             -alias android \
-            -keyalg RSA \
-            -keysize 2048 \
+            -keyalg RSA -keysize 2048 \
             -validity 10000 \
             -storepass android123 \
             -keypass android123 \
             -dname "CN=Tron MP4, O=JonpWork, C=BR"
 
-      - name: Build APK
-        run: echo "android123" | bubblewrap build --skipPwaValidation
+      - name: Build APK com expect
+        run: |
+          expect << 'EOF'
+          set timeout 300
+          spawn bubblewrap build --skipPwaValidation
+          expect {
+            -re "(?i)password" { send "android123\r"; exp_continue }
+            eof
+          }
+          EOF
 
       - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
