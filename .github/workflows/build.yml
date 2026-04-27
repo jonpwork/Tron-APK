@@ -1,0 +1,40 @@
+name: Build APK - Tron MP4
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Inicializar projeto
+        run: |
+          bubblewrap init \
+            --manifest https://tron-mp4-app.onrender.com/manifest.json
+
+      - name: Build APK
+        run: bubblewrap build
+
+      - name: Upload APK/AAB
+        uses: actions/upload-artifact@v3
+        with:
+          name: tron-mp4-release
+          path: app/build/outputs/
